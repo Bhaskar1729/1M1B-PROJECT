@@ -1,0 +1,55 @@
+from picamera import PiCamera
+from PIL import Image
+import os
+import datetime
+import smtplib
+import time
+
+camera = PiCamera()
+
+data = []
+file_path = "\user\bin\desktop"  #this will be the folder where the images are stored
+n = 2 #no. of plants
+
+def send(b):
+    s = smtplib.SMTP("smtp.gmail.com", 587)
+    s.starttls()
+    s.login("1m1bproj@gmail.com", "zxcvbnmqwertyuiop")
+    message = "Please Check plant number" + str(b)
+    s.sendmail("1m1bproj@gmail.com", "1m1bproj@gmail.com", message)
+    s.quit()
+    
+while True:
+    t = datetime.datetime.now()
+    if t.hour == 20 and t.minute == 30: #time when the code runs
+        camera.start_preview()
+        camera.exposure_mode = "night"  (Incase images need to be taken at night)  
+        for i in range(0, n):
+            time.sleep(5)
+            camera.capture(file_path + "\\1M1B\\image%s.jpg" % i)   
+        camera.stop_preview
+
+    
+        cur_data = []
+        count = 0
+        for file in os.listdir(file_path):
+            color = 0
+            im = Image.open(file_path +"\\" + file)
+            count += 1
+            for pixel in im.getdata():
+                if pixel(1) > 2*pixel(0) and pixel(1) > 2*pixel(2):  
+                    color += 1
+            cur_data.append([count, color, datetime.date.today(), file_path + "\\" + file])
+        data.append(cur_data)
+
+        for i in range(0, len(cur_data)):
+            avg = sum(data[j][i][1] for j in range(0, len(data)))/len(data) # average of all the plants
+            if cur_data[i][1] < avg: 
+                print(cur_data[i][0], "is bad. Check")
+                b = cur_data[i][0]
+                send(b)
+            print(avg)
+
+        for i in cur_data:
+            os.remove(i[3])
+        time.sleep(60)
